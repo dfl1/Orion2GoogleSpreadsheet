@@ -96,7 +96,7 @@ def auth():
     credentials = flow.step2_exchange(code)
     return credentials
 
-def auth_client():
+def get_client_credentials(client):
     storage = Storage("creds.dat")
     credentials = storage.get()
 
@@ -108,9 +108,15 @@ def auth_client():
     if credentials.access_token_expired:
         credentials.refresh(httplib2.Http())
 
-    client = gdata.spreadsheet.service.SpreadsheetsService(
+    if client == "drive":
+        #http = credentials.authorize(httplib2.Http())
+        dr_client = build('drive', 'v2', http=http)
+        return dr_client
+
+    elif client == "sheets":
+        sp_client = gdata.spreadsheet.service.SpreadsheetsService(
         additional_headers={'Authorization': 'Bearer %s' % credentials.access_token})
-    return client
+        return sp_client
 
 def get_spreadsheet_key():
     if 'spreadsheet_key.yaml':
@@ -137,7 +143,7 @@ def get_spreadsheet_key():
                 print 'An error occurred: %s' % error
 
 def insert_data(entities):
-    client = auth_client()
+    client = get_client_credentials('sheets')
     spreadsheet_key = get_spreadsheet_key()
     worksheet_id = 'od6'  # default
 
@@ -212,7 +218,7 @@ def insert_data(entities):
 
 def move_column(origin, destination):
     from collections import OrderedDict
-    client = auth_client()
+    client = get_client_credentials('sheets')
     spreadsheet_key = get_spreadsheet_key()
     worksheet_id = 'od6'  # default
     col_values = OrderedDict() #Ordered Dict
@@ -260,7 +266,7 @@ def move_column(origin, destination):
     client.ExecuteBatch(batch_request_dest, cells_dest.GetBatchLink().href)
 
 def check_headers():
-    client = auth_client()
+    client = get_client_credentials('sheets')
     spreadsheet_key = get_spreadsheet_key()
     worksheet_id = 'od6'  # default
     headers = {}

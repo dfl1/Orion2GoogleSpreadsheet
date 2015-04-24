@@ -39,10 +39,17 @@ data = json.loads(d)
 ### CLASSES ###
 
 class DefaultHandler(webapp2.RequestHandler):
-    '''Catch Context Broker data'''
+    """Listen and Catch Context Broker data"""
 
     # Listen to Context Broker requests
     def post(self):
+        """
+        Listens to and Catches incoming Context Broker requests.
+        Transforms incoming data and stores it to be processed later
+
+        return: entities List of Entity dict objects.
+                Each entity contains: Entity Name: Entity name // Attributes: attributes dict
+        """
         global data
         try:
             data = json.loads(self.request.body)
@@ -71,7 +78,6 @@ class DefaultHandler(webapp2.RequestHandler):
             self.insert_data(entities)
             return entities
 
-
         except:
             logs.logger.error("An exception occurred")
             self.response.status_int = 403
@@ -79,7 +85,12 @@ class DefaultHandler(webapp2.RequestHandler):
 
     # Insert data in file
     def insert_data(self, entities):
-        client = auth_client()
+        """
+        Inserts data coming from Context Broker into the Spreadsheet previously created
+
+        return:None
+        """
+        client = get_client_credentials('sheet')
         spreadsheet_key = get_spreadsheet_key()
         worksheet_id = 'od6'  # default
 
@@ -204,17 +215,18 @@ def string_normalizer(message):
     # Return normalized string
     return message
 
-# OAuth flow and retrieve credentials
-def auth():
-    flow = OAuth2WebServerFlow(CLIENT_ID, CLIENT_SECRET, OAUTH_SCOPE, redirect_uri=REDIRECT_URI)
-    authorize_url = flow.step1_get_authorize_url()
-    print 'Go to the following link in your browser: ' + authorize_url
-    code = raw_input('Enter verification code: ').strip()
-    credentials = flow.step2_exchange(code)
-    return credentials
+# Clients Auth and Credentials
+def get_client_credentials(client):
+    """
+    Makes Google Oauth flow and store credentials in file.
+    Creates an authenticated Drive client/ Spreadsheets client
+    depending on the client param introduced.
 
-# Spreadsheets Client Auth
-def auth_client():
+    param client: "drive" for Drive client / "sheets" for Spreadsheets client
+    type client: string
+
+    return: Authenticated Drive/Spreadsheet client Object
+    """
     storage = Storage("creds.dat")
     credentials = storage.get()
 
@@ -226,21 +238,28 @@ def auth_client():
     if credentials.access_token_expired:
         credentials.refresh(httplib2.Http())
 
-    client = gdata.spreadsheet.service.SpreadsheetsService(
+    if client == "drive":
+        dr_client = build('drive', 'v2', http=http)
+        return dr_client
+
+    elif client == "sheets":
+        sp_client = gdata.spreadsheet.service.SpreadsheetsService(
         additional_headers={'Authorization': 'Bearer %s' % credentials.access_token})
-    return client
+        return sp_client
 
 # Insert new file
-def insert_file(credentials):
-    http = credentials.authorize(httplib2.Http())
-    drive_service = build('drive', 'v2', http=http)
+def insert_file():
+    """
+    Inserts a new empty Spreadsheet file in the user's Google Drive account/ Spreadsheets
 
+    :return: None
+    """
+    drive_service = get_client_credentials('drive')
     body = {
         'title': 'Orion 2 GSP',
         'description': 'description',
         'mimeType': 'application/vnd.google-apps.spreadsheet'
     }
-
     try:
         file = drive_service.files().insert(body=body).execute()
         with open('spreadsheet_key.yaml', 'w') as f:
@@ -254,6 +273,11 @@ def insert_file(credentials):
 
 # Get Spreadsheet Key from file
 def get_spreadsheet_key():
+    """
+    Gets the spreadsheet key from the spreadsheet created by the app
+
+    :return: Spreadsheet Key string
+    """
     if 'spreadsheet_key.yaml':
         try:
             with open('spreadsheet_key.yaml') as f:
@@ -261,9 +285,7 @@ def get_spreadsheet_key():
             return spreadsheet_key
         except:
             # Get spreadsheet_key
-            credentials = auth()
-            http = credentials.authorize(httplib2.Http())
-            drive_service = build('drive', 'v2', http=http)
+            drive_service = get_client_credentials('drive')
             result = []
             try:
                 fields = 'items(id,labels/trashed,title)'
@@ -279,7 +301,12 @@ def get_spreadsheet_key():
 
 # Check Headers
 def check_headers():
-    client = auth_client()
+    """
+    Check column headers in the previously created spreadsheet
+
+    return: headers dictionary. Key = Column number (starting from 1):Value = Column name
+    """
+    client = get_client_credentials('sheets')
     spreadsheet_key = get_spreadsheet_key()
     worksheet_id = 'od6'  # default
     headers = {}
@@ -292,10 +319,21 @@ def check_headers():
 
     return headers
 
-# Move colums in Spreadsheet
+# Move columns in Spreadsheet
 def move_column(origin, destination):
+    """
+    Moves the required columns in the Spreadsheet to handle new incoming attributes
+    Colums are moved as many spaces right as new attributes coming in
+
+    param origin: origin column number
+    type origin: int
+    param destination: destination column number
+    type destination: int
+
+    return: None
+    """
     from collections import OrderedDict
-    client = auth_client()
+    client = get_client_credentials('sheets')
     spreadsheet_key = get_spreadsheet_key()
     worksheet_id = 'od6'  # default
     col_values = OrderedDict() #Ordered Dict
