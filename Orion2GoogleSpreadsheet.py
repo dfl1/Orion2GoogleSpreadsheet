@@ -323,7 +323,7 @@ def check_headers():
 def move_column(origin, destination):
     """
     Moves the required columns in the Spreadsheet to handle new incoming attributes
-    Colums are moved as many spaces right as new attributes coming in
+    Columns are moved as many spaces right as new attributes coming in
 
     param origin: origin column number
     type origin: int
