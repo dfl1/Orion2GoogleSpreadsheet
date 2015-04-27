@@ -129,5 +129,10 @@ Limitations
 -	Avoid changing 1st column cells content. 1st cells in each column contain the headers against which Orion2GoogleSpreadsheet does attribute content matching when feeding the spreadsheet. Changes will cause loose of data.  
 -	Avoid changing columns order in the spreadsheet.
 
+Feedback
+--------
+
+Please report bugs and suggest features via [GitHub Issues](https://github.com/dfl1/Orion2GoogleSpreadsheet/issues).
+
 
 
