@@ -1,3 +1,19 @@
+# This file is part of IoT Partner Integration kit software (a set of tools for FIWARE Orion ContextBroker and IDAS2.6).
+#
+# IoT Partner Integration kit is free software: you can redistribute it and/or modify it under the terms of the GNU
+# Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# IoT Partner Integration kit is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+# even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License along with IoT Partner Integration kit.
+# If not, see http://www.gnu.org/licenses/
+#
+# For those usages not covered by the GNU Affero General Public License please contact with iot_support@tid.es
+#
+# Developed by @IndustrialIoT Team (mail:iot_support@tid.es)
+
 __author__ = 'Daniel Fernandez Lazaro'
 
 import urllib2
