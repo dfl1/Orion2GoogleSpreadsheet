@@ -181,8 +181,8 @@ class DefaultHandler(webapp2.RequestHandler):
 ### MAIN ###
 
 # User account Auth for Google Drive + Spreadsheet creation
-# if check_file() == False:
-#     insert_file()
+if check_file() == False:
+    insert_file()
 
 # Insert Incoming Data in Google Spreadsheet
 handler = DefaultHandler()
