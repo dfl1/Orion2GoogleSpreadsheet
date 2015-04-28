@@ -1,13 +1,12 @@
 """
 This module is part of Orion2GoogleSpreadsheet project.
 
-Contains functionality used by Orion2GoogleSpreadsheet to obtain credentials
-and authenticate clients for communication with Google Data API.
+Contains functionality used by Orion2GoogleSpreadsheet to Obtain credentials
+and Authenticate clients for communication with Google Data API.
 """
 
 import yaml
 import logs
-import http
 import httplib2
 import gdata.spreadsheet.service
 from googleapiclient.discovery import build
@@ -15,8 +14,8 @@ from oauth2client.client import OAuth2WebServerFlow
 from oauth2client.file import Storage
 from oauth2client import tools
 
-# Load Credentials and Properties #
 
+# Load Credentials and Properties #
 def get_properties():
     logs.logger.info("Loading properties")
     try:
@@ -59,6 +58,7 @@ def get_client_credentials(client):
         if client == "drive":
             try:
                 logs.logger.info("Creating Drive client")
+                http = credentials.authorize(httplib2.Http())
                 dr_client = build('drive', 'v2', http=http)
                 return dr_client
             except:

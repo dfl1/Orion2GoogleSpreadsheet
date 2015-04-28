@@ -23,9 +23,10 @@ import logs
 import time
 import gdata.spreadsheet.service
 import gdata.service
-from functions import (post_TEST, string_normalizer, get_spreadsheet_key, check_headers,
-                       move_column, insert_file)
+from functions import (post_TEST, get_spreadsheet_key, check_headers, move_column,
+                       insert_file, check_file)
 from clientcreds import (get_properties, get_client_credentials)
+from normalizer import string_normalizer
 
 
 logs.config_log()
@@ -173,14 +174,15 @@ class DefaultHandler(webapp2.RequestHandler):
 
             #logs.logger.info(str(len(rows)) + " rows inserted")
 
-        except:
-            logs.logger.warn("An error occurred while inserting data")
+        except Exception as e:
+            logs.logger.error("An error occurred while inserting data: " +str(e))
 
 
 ### MAIN ###
 
 # User account Auth for Google Drive + Spreadsheet creation
-#insert_file()
+# if check_file() == False:
+#     insert_file()
 
 # Insert Incoming Data in Google Spreadsheet
 handler = DefaultHandler()

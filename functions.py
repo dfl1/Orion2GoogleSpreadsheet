@@ -7,13 +7,14 @@ Contains utility functions used by Orion2GoogleSpreadsheet
 import gdata.spreadsheet.service
 from apiclient import errors
 from clientcreds import get_client_credentials
-import unicodedata
-import string
 import json
 import logs
 import yaml
 
 ################################# IGNORE THE CODE BELOW #################################
+#########################################################################################
+
+from normalizer import string_normalizer
 
 # IGNORE. Load TEST json data. TO BE DELETED IN FINAL RELEASE.
 # Emulates DefaultHandler.post() catching data function
@@ -21,6 +22,7 @@ d = open("json_test_data.txt").read()
 data = json.loads(d)
 
 # IGNORE. Listen to Context Broker requests TEST. TO BE DELETED IN FINAL RELEASE
+
 def post_TEST():
     global data
     try:
@@ -43,33 +45,25 @@ def post_TEST():
     except:
         print "An exception occurred"
 
+#########################################################################################
 ################################# IGNORE THE CODE ABOVE #################################
 
-# Normalize strings
-def string_normalizer(message):
-    try:
-        # Convert to unicode format
-        message = message.decode()
 
-        # Lower-case
-        message = message.lower()
+# Check file
+def check_file():
+    """
+    Checks if a spreadsheet used by the app already exists
+    in the user's Google Drive account/ Spreadsheets
 
-        # Replace some characters
-        message = message.replace('.', '_')
-        message = message.replace(' ', '_')
-        message = message.replace(':', '_')
+    :return: True / False
+    """
+    logs.logger.info("Checking file status")
+    if retrieve_spreadsheet_key() == get_spreadsheet_key():
+        logs.logger.info("File already exists in user's Drive account. Stored file Key matches Drive's file key")
+        return True
+    else:
+        return False
 
-        # Get NFKD unicode format
-        message = unicodedata.normalize('NFKD', message)
-
-        # Delete not ascii_letters
-        message = ''.join(x for x in message if x in string.ascii_letters or x == "_" or x.isdigit())
-    except:
-        logs.logger.warn("An error occurred while trying to normalize string")
-        return ""
-
-    # Return normalized string
-    return message
 
 # Insert new file
 def insert_file():
@@ -81,7 +75,6 @@ def insert_file():
     drive_service = get_client_credentials('drive')
     body = {
         'title': 'Orion 2 GSP',
-        'description': 'description',
         'mimeType': 'application/vnd.google-apps.spreadsheet'
     }
     try:
@@ -96,35 +89,47 @@ def insert_file():
         logs.logger.warn("An error occurred: " + str(error))
         return None
 
+
 # Get Spreadsheet Key from file
 def get_spreadsheet_key():
     """
-    Gets the spreadsheet key from the spreadsheet created by the app
+    Gets the spreadsheet key from yaml file
 
     :return: Spreadsheet Key string
     """
     if 'spreadsheet_key.yaml':
         try:
-            logs.logger.info("Checking Spreadsheet Key")
+            logs.logger.info("Checking Spreadsheet Key in yaml file")
             with open('spreadsheet_key.yaml') as f:
                 spreadsheet_key = yaml.load(f)
             return spreadsheet_key
         except:
-            logs.logger.info("No Key in file... Obtaining key from Drive account")
-            # Get spreadsheet_key
-            drive_service = get_client_credentials('drive')
-            result = []
-            try:
-                fields = 'items(id,labels/trashed,title)'
-                q = "title = 'Orion 2 GSP' and trashed = false"
-                files = drive_service.files().list(fields=fields, q=q).execute()
-                result.extend(files['items'])
-                for item in result:
-                    spreadsheet_key = item['id']
-                    return spreadsheet_key
+            logs.logger.info("No Key in file")
 
-            except errors.HttpError, error:
-                logs.logger.warn("An error occurred: " + str(error))
+
+# Retrieve Spreadsheet Key from Google account
+def retrieve_spreadsheet_key():
+    """
+    Retrieves the spreadsheet key from user's Google account
+
+    :return: Spreadsheet Key string
+    """
+    logs.logger.info("Retrieving Spreadsheet Key from users account")
+    drive_service = get_client_credentials('drive')
+    result = []
+    try:
+        fields = 'items(id)'
+        #q='title ="Orion 2 GSP" and mimeType = "application/vnd.google-apps.spreadsheet" and trashed = false'
+        q = "title = 'Orion 2 GSP' and trashed = false"
+        files = drive_service.files().list(fields=fields, q=q).execute()
+        result.extend(files['items'])
+        for item in result:
+            spreadsheet_key = item['id']
+            return spreadsheet_key
+
+    except errors.HttpError, error:
+        logs.logger.warn("An error occurred: " + str(error))
+
 
 # Check Headers
 def check_headers():
@@ -150,6 +155,7 @@ def check_headers():
 
     except:
         logs.logger.warn("An error occurred while checking headers")
+
 
 # Move columns in Spreadsheet
 def move_column(origin, destination):
