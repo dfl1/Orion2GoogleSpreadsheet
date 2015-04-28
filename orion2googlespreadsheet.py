@@ -178,7 +178,7 @@ class DefaultHandler(webapp2.RequestHandler):
             logs.logger.error("An error occurred while inserting data: " +str(e))
 
 
-#### MAIN ####
+### MAIN ###
 
 # User account Auth for Google Drive + Spreadsheet creation
 if check_file() == False:
