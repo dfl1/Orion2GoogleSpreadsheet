@@ -175,7 +175,7 @@ class DefaultHandler(webapp2.RequestHandler):
             #logs.logger.info(str(len(rows)) + " rows inserted")
 
         except Exception as e:
-            logs.logger.error("An error occurred while inserting data: " +str(e))
+            logs.logger.error("An error occurred while inserting data: " + str(e))
 
 
 ### MAIN ###

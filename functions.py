@@ -45,6 +45,7 @@ def post_TEST():
     except:
         print "An exception occurred"
 
+
 #########################################################################################
 ################################# IGNORE THE CODE ABOVE #################################
 
@@ -105,6 +106,9 @@ def get_spreadsheet_key():
             return spreadsheet_key
         except:
             logs.logger.info("No Key in file")
+    else:
+        logs.logger.info("No 'spreadsheet_key.yaml' file exists")
+        return ""
 
 
 # Retrieve Spreadsheet Key from Google account
@@ -119,7 +123,7 @@ def retrieve_spreadsheet_key():
     result = []
     try:
         fields = 'items(id)'
-        #q='title ="Orion 2 GSP" and mimeType = "application/vnd.google-apps.spreadsheet" and trashed = false'
+        # q='title ="Orion 2 GSP" and mimeType = "application/vnd.google-apps.spreadsheet" and trashed = false'
         q = "title = 'Orion 2 GSP' and trashed = false"
         files = drive_service.files().list(fields=fields, q=q).execute()
         result.extend(files['items'])
@@ -149,7 +153,7 @@ def check_headers():
         query.max_row = '1'
         cells = client.GetCellsFeed(spreadsheet_key, wksht_id=worksheet_id, query=query)
         for i, entry in enumerate(cells.entry):
-            headers[i+1] = entry.cell.text
+            headers[i + 1] = entry.cell.text
 
         return headers
 
@@ -173,27 +177,26 @@ def move_column(origin, destination):
     logs.logger.info("Adjusting columns")
 
     from collections import OrderedDict
+
     client = get_client_credentials('sheets')
     spreadsheet_key = get_spreadsheet_key()
     worksheet_id = 'od6'  # default
-    col_values = OrderedDict() #Ordered Dict
+    col_values = OrderedDict()  # Ordered Dict
 
     try:
 
         try:
-            logs.logger.info("Generating origin column")
             # Origin Column
-            query_orig = gdata.spreadsheet.service.CellQuery()
-            query_orig.return_empty = "true"
-            query_orig.min_col = str(origin)
-            query_orig.max_col = str(origin)
+            logs.logger.info("Generating origin column")
+            query_orig = make_cell_query(origin, origin)
             cells_orig = client.GetCellsFeed(spreadsheet_key, wksht_id=worksheet_id, query=query_orig)
 
+            # Request Origin Column
             batch_request_orig = gdata.spreadsheet.SpreadsheetsCellsFeed()
 
             for i, entry_orig in enumerate(cells_orig.entry):
                 col_values[i] = entry_orig.cell.text
-                if entry_orig.cell.text != None: # Avoid inserting new rows at the end due to the initial query
+                if entry_orig.cell.text != None:  # Avoid inserting new rows at the end due to the initial query
                     entry_orig.cell.inputValue = ''
                     batch_request_orig.AddUpdate(cells_orig.entry[i])
 
@@ -203,7 +206,7 @@ def move_column(origin, destination):
         except:
             logs.logger.warn("An error occurred while generating origin column")
 
-        #handle empty cells to do destination query
+        # Handle empty cells before doing destination query
         col_values_clean = {}
 
         try:
@@ -211,22 +214,19 @@ def move_column(origin, destination):
                 if i[1][1] != None:
                     col_values_clean[i[0]] = i[1][1]
 
-            for x in range(0,max(col_values_clean.keys())+1):
+            for x in range(0, max(col_values_clean.keys()) + 1):
                 if x not in col_values_clean.iterkeys():
                     col_values_clean[x] = '-'
         except:
             logs.logger.warn("An error occurred while handing empty cells in column")
 
         try:
-            logs.logger.info("Generating destination column")
             # Destination Column
-            query_dest = gdata.spreadsheet.service.CellQuery()
-            query_dest.return_empty = "true"
-            query_dest.max_row = str(len(col_values_clean))
-            query_dest.min_col = str(destination)
-            query_dest.max_col = str(destination)
+            logs.logger.info("Generating destination column")
+            query_dest = make_cell_query(destination, destination, len(col_values_clean))
             cells_dest = client.GetCellsFeed(spreadsheet_key, wksht_id=worksheet_id, query=query_dest)
 
+            # Request Destination Column
             batch_request_dest = gdata.spreadsheet.SpreadsheetsCellsFeed()
 
             for i, entry_dest in enumerate(cells_dest.entry):
@@ -241,3 +241,18 @@ def move_column(origin, destination):
 
     except:
         logs.logger.warn("An error occurred while moving columns")
+
+
+# Make cells query
+def make_cell_query(min_col, max_col, max_row = None):
+    logs.logger.info("Making cell query")
+    try:
+        query = gdata.spreadsheet.service.CellQuery()
+        query.return_empty = "true"
+        query.min_col = str(min_col)
+        query.max_col = str(max_col)
+        if max_row:
+            query.max_row = str(max_row)
+        return query
+    except:
+        logs.logger.error("Error making cell query")
