@@ -74,21 +74,25 @@ def insert_file():
     :return: None
     """
     drive_service = get_client_credentials('drive')
-    body = {
-        'title': 'Orion 2 GSP',
-        'mimeType': 'application/vnd.google-apps.spreadsheet'
-    }
+    body = {'title': 'Orion 2 GSP',
+            'mimeType': 'application/vnd.google-apps.spreadsheet'}
+
+    logs.logger.info("Inserting new Spreadsheet file")
+
     try:
-        logs.logger.info("Inserting new Spreadsheet file")
         file = drive_service.files().insert(body=body).execute()
-        with open('spreadsheet_key.yaml', 'w') as f:
-            yaml.safe_dump(file['id'], f, default_flow_style=False)
-        print 'File Created'
-        return None
+        store_spreadsheet_key(file)
+        logs.logger.info("File Created")
 
     except errors.HttpError, error:
         logs.logger.warn("An error occurred: " + str(error))
-        return None
+
+
+# Store Spreadsheet Key
+def store_spreadsheet_key(file):
+    with open('spreadsheet_key.yaml', 'w') as f:
+        yaml.safe_dump(file['id'], f, default_flow_style=False)
+    logs.logger.info("Spreadsheet Key stored")
 
 
 # Get Spreadsheet Key from file
@@ -99,11 +103,11 @@ def get_spreadsheet_key():
     :return: Spreadsheet Key string
     """
     if 'spreadsheet_key.yaml':
+        logs.logger.info("Checking Spreadsheet Key in yaml file")
         try:
-            logs.logger.info("Checking Spreadsheet Key in yaml file")
             with open('spreadsheet_key.yaml') as f:
-                spreadsheet_key = yaml.load(f)
-            return spreadsheet_key
+                return yaml.load(f)
+
         except:
             logs.logger.info("No Key in file")
     else:
@@ -123,13 +127,11 @@ def retrieve_spreadsheet_key():
     result = []
     try:
         fields = 'items(id)'
-        # q='title ="Orion 2 GSP" and mimeType = "application/vnd.google-apps.spreadsheet" and trashed = false'
         q = "title = 'Orion 2 GSP' and trashed = false"
         files = drive_service.files().list(fields=fields, q=q).execute()
         result.extend(files['items'])
         for item in result:
-            spreadsheet_key = item['id']
-            return spreadsheet_key
+            return item['id']
 
     except errors.HttpError, error:
         logs.logger.warn("An error occurred: " + str(error))
@@ -167,10 +169,8 @@ def move_column(origin, destination):
     Moves the required columns in the Spreadsheet to handle new incoming attributes
     Columns are moved as many spaces right as new attributes coming in
 
-    param origin: origin column number
-    type origin: int
-    param destination: destination column number
-    type destination: int
+    param origin: origin column number (int)
+    param destination: destination column number (int)
 
     return: None
     """
@@ -208,17 +208,7 @@ def move_column(origin, destination):
 
         # Handle empty cells before doing destination query
         col_values_clean = {}
-
-        try:
-            for i in enumerate(col_values.items()):
-                if i[1][1] != None:
-                    col_values_clean[i[0]] = i[1][1]
-
-            for x in range(0, max(col_values_clean.keys()) + 1):
-                if x not in col_values_clean.iterkeys():
-                    col_values_clean[x] = '-'
-        except:
-            logs.logger.warn("An error occurred while handing empty cells in column")
+        handle_empty_cells(col_values,col_values_clean)
 
         try:
             # Destination Column
@@ -256,3 +246,21 @@ def make_cell_query(min_col, max_col, max_row = None):
         return query
     except:
         logs.logger.error("Error making cell query")
+
+
+# Handle empty cells
+def handle_empty_cells(col_values, col_values_clean):
+    logs.logger.info("Handing empty cells")
+    try:
+        for i in enumerate(col_values.items()):
+            if i[1][1] is not None:
+                col_values_clean[i[0]] = i[1][1]
+
+        for x in range(0, max(col_values_clean.keys()) + 1):
+            if x not in col_values_clean.iterkeys():
+                col_values_clean[x] = '-'
+
+        return col_values_clean
+
+    except:
+        logs.logger.warn("An error occurred while handing empty cells in column")
